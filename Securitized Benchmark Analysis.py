@@ -36,13 +36,14 @@ all_accounts = [abs_index, nif_abs_holdings, snf_abs_holdings,
            ttf_abs_holdings, stb_abs_holdings]
 
 # Create empty list for finished dfs to be appended to
-df_list = []
+abs_list = []
 
 # Loop through dfs for each account and perform the function
 for i in all_accounts:
 
 # Function performs operations on specified dataframe
     def abs_account(i):
+        global df
         df = i
     
         # Set column headers and drop unnecessary rows
@@ -94,30 +95,30 @@ for i in all_accounts:
     
     return_frame = abs_account(i)
     
-    df_list.append(return_frame)
+    abs_list.append(return_frame)
         
-# Unpack the tuples in df_list
-index_ratings, index_partitions, index_issuers = df_list[0]
+# Unpack the tuples in abs_list
+index_ratings, index_partitions, index_issuers = abs_list[0]
 index_ratings.columns = ['Index Rating', '% Wgt Index']
 index_partitions.columns = ['Index Partition', '% Wgt Index']
 index_issuers.columns = ['Index Issuer', '% Wgt Index']
 
-nif_ratings, nif_partitions, nif_issuers = df_list[1]
+nif_ratings, nif_partitions, nif_issuers = abs_list[1]
 nif_ratings.columns = ['NIF Rating', '% Wgt NIF']
 nif_partitions.columns = ['NIF Partition', '% Wgt NIF']
 nif_issuers.columns = ['NIF Issuer', '% Wgt NIF']
 
-snf_ratings, snf_partitions, snf_issuers = df_list[2]
+snf_ratings, snf_partitions, snf_issuers = abs_list[2]
 snf_ratings.columns = ['SNF Rating', '% Wgt SNF']
 snf_partitions.columns = ['SNF Partition', '% Wgt SNF']
 snf_issuers.columns = ['SNF Issuer', '% Wgt SNF']
 
-ttf_ratings, ttf_partitions, ttf_issuers = df_list[3]
+ttf_ratings, ttf_partitions, ttf_issuers = abs_list[3]
 ttf_ratings.columns = ['TTF Rating', '% Wgt TTF']
 ttf_partitions.columns = ['TTF Partition', '% Wgt TTF']
 ttf_issuers.columns = ['TTF Issuer', '% Wgt TTF']
 
-stb_ratings, stb_partitions, stb_issuers = df_list[4]
+stb_ratings, stb_partitions, stb_issuers = abs_list[4]
 stb_ratings.columns = ['STB Rating', '% Wgt STB']
 stb_partitions.columns = ['STB Partition', '% Wgt STB']
 stb_issuers.columns = ['STB Issuer', '% Wgt STB']
@@ -157,17 +158,18 @@ with pd.ExcelWriter('ABS Benchmark Analysis.xlsx', engine = 'openpyxl',
 # CMBS ANALYSIS
 
 # Create a list of all CMBS dataframes
-all_accounts = [cmbs_index, nif_cmbs_holdings, snf_cmbs_holdings,
-           ttf_cmbs_holdings, stb_cmbs_holdings]
+all_accounts = [cmbs_index, nif_cmbs_holdings, snf_cmbs_holdings, 
+                ttf_cmbs_holdings, stb_cmbs_holdings]
 
 # Create empty list for finished dfs to be appended to
-df_list = []
+cmbs_list = []
 
 # Loop through dfs for each account and perform the function
 for i in all_accounts:
     
     # Function performs operations on specified dataframe
     def cmbs_account(i):
+        global cmbs
         cmbs = i
 
         # Set column headers and drop unnecessary rows
@@ -206,7 +208,43 @@ for i in all_accounts:
                 np.where(cmbs["Moody's Rating"] == 'BBB+', 'Ba1',
                 np.where(cmbs["Moody's Rating"] == 'BB', 'Ba2',
                 np.where(cmbs["Moody's Rating"] == 'BBB-', 'Ba3',
-                          cmbs["Moody's Rating"]))))))))))))), 
+                np.where(cmbs["Moody's Rating"] == 'BB-', 'Ba3',
+                         cmbs["Moody's Rating"])))))))))))))), 
+                cmbs["Moody's Rating"])
+        
+        else:
+            pass
+        
+        if 'Fitch Rating' in cmbs.columns:
+        
+            # Replace nan Moody's rating w/ S&P rating
+            cmbs["Moody's Rating"].fillna(cmbs['Fitch Rating'], 
+                                                      inplace = True)
+            
+            # Replace NR Moody's rating w/ Fitch rating
+            cmbs["Moody's Rating"] = np.where(cmbs["Moody's Rating"] == 'NR',
+                                              cmbs['Fitch Rating'],
+                                              cmbs["Moody's Rating"])
+            
+            # Replace Fitch rtg in Moody's column w/ equivalent Moody's rtg
+            cmbs["Moody's Rating"] = np.where(cmbs["Moody's Rating"] == 
+                                                cmbs['Fitch Rating'], 
+                np.where(cmbs["Moody's Rating"] == 'AAA', 'Aaa', 
+                np.where(cmbs["Moody's Rating"] == 'AA+', 'Aa1', 
+                np.where(cmbs["Moody's Rating"] == 'AA', 'Aa2',
+                np.where(cmbs["Moody's Rating"] == 'A-', 'A3',
+                np.where(cmbs["Moody's Rating"] == 'AA-', 'Aa3', 
+                np.where(cmbs["Moody's Rating"] == 'BBB-', 'Baa3', 
+                np.where(cmbs["Moody's Rating"] == 'A+', 'A1',
+                np.where(cmbs["Moody's Rating"] == 'A', 'A2',
+                np.where(cmbs["Moody's Rating"] == 'BBB+', 'Baa1',
+                np.where(cmbs["Moody's Rating"] == 'BBB', 'Baa2',
+                np.where(cmbs["Moody's Rating"] == 'BBB+', 'Ba1',
+                np.where(cmbs["Moody's Rating"] == 'BB', 'Ba2',
+                np.where(cmbs["Moody's Rating"] == 'BBB-', 'Ba3',
+                np.where(cmbs["Moody's Rating"] == 'BB-', 'Ba3',
+                np.where(cmbs["Moody's Rating"] == 'AAA *-', 'Aaa',
+                         cmbs["Moody's Rating"]))))))))))))))), 
                 cmbs["Moody's Rating"])
         
         else:
@@ -224,30 +262,30 @@ for i in all_accounts:
     
     return_frame = cmbs_account(i)
     
-    df_list.append(return_frame)
+    cmbs_list.append(return_frame)
     
-# Unpack the tuples in df_list
-index_ratings, index_partitions, index_issuers = df_list[0]
+# Unpack the tuples in cmbs_list
+index_ratings, index_partitions, index_issuers = cmbs_list[0]
 index_ratings.columns = ['Index Rating', '% Wgt Index']
 index_partitions.columns = ['Index Partition', '% Wgt Index']
 index_issuers.columns = ['Index Issuer', '% Wgt Index']
 
-nif_ratings, nif_partitions, nif_issuers = df_list[1]
+nif_ratings, nif_partitions, nif_issuers = cmbs_list[1]
 nif_ratings.columns = ['NIF Rating', '% Wgt NIF']
 nif_partitions.columns = ['NIF Partition', '% Wgt NIF']
 nif_issuers.columns = ['NIF Issuer', '% Wgt NIF']
 
-snf_ratings, snf_partitions, snf_issuers = df_list[2]
+snf_ratings, snf_partitions, snf_issuers = cmbs_list[2]
 snf_ratings.columns = ['SNF Rating', '% Wgt SNF']
 snf_partitions.columns = ['SNF Partition', '% Wgt SNF']
 snf_issuers.columns = ['SNF Issuer', '% Wgt SNF']
 
-ttf_ratings, ttf_partitions, ttf_issuers = df_list[3]
+ttf_ratings, ttf_partitions, ttf_issuers = cmbs_list[3]
 ttf_ratings.columns = ['TTF Rating', '% Wgt TTF']
 ttf_partitions.columns = ['TTF Partition', '% Wgt TTF']
 ttf_issuers.columns = ['TTF Issuer', '% Wgt TTF']
 
-stb_ratings, stb_partitions, stb_issuers = df_list[4]
+stb_ratings, stb_partitions, stb_issuers = cmbs_list[4]
 stb_ratings.columns = ['STB Rating', '% Wgt STB']
 stb_partitions.columns = ['STB Partition', '% Wgt STB']
 stb_issuers.columns = ['STB Issuer', '% Wgt STB']
@@ -278,9 +316,9 @@ np.where(all_ratings['Index Rating'] == 'AA2', 'Aa2',
 np.where(all_ratings['Index Rating'] == 'AA1', 'Aa1',
 np.where(all_ratings['Index Rating'] == 'BAA2', 'Baa2',
 np.where(all_ratings['Index Rating'] == 'BAA3', 'Baa3',
-np.where(all_ratings['Index Rating'] == 'BAA1', 'Baa2', 
-         all_ratings['Index Rating'])))))))
-    
+np.where(all_ratings['Index Rating'] == 'BAA1', 'Baa1', 
+          all_ratings['Index Rating'])))))))
+
 # Write to excel
 with pd.ExcelWriter('CMBS Benchmark Analysis.xlsx', engine = 'openpyxl',
                     mode = 'a', if_sheet_exists = 'replace') as writer:
