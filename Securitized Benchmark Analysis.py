@@ -616,22 +616,18 @@ for i in all_accounts:
 # Unpack the tuples in clo_list
 nif_ratings, nif_issuers = clo_list[0]
 nif_ratings.columns = ['NIF Rating', '% Wgt NIF']
-nif_partitions.columns = ['NIF Partition', '% Wgt NIF']
 nif_issuers.columns = ['NIF Issuer', '% Wgt NIF']
 
 snf_ratings, snf_issuers = clo_list[1]
 snf_ratings.columns = ['SNF Rating', '% Wgt SNF']
-snf_partitions.columns = ['SNF Partition', '% Wgt SNF']
 snf_issuers.columns = ['SNF Issuer', '% Wgt SNF']
 
 ttf_ratings, ttf_issuers = clo_list[2]
 ttf_ratings.columns = ['TTF Rating', '% Wgt TTF']
-ttf_partitions.columns = ['TTF Partition', '% Wgt TTF']
 ttf_issuers.columns = ['TTF Issuer', '% Wgt TTF']
 
 stb_ratings, stb_issuers = clo_list[3]
 stb_ratings.columns = ['STB Rating', '% Wgt STB']
-stb_partitions.columns = ['STB Partition', '% Wgt STB']
 stb_issuers.columns = ['STB Issuer', '% Wgt STB']
 
 # Merge all ratings, and issuers
