@@ -6,12 +6,14 @@ Created on Thu Dec 14 10:54:05 2023
 """
 
 import pandas as pd
-import plotly.express as px
 import matplotlib.pyplot as plt
 
-# API initialization
+# Trundl API
 from analytics_platform.trundl import Trundl
 trundl = Trundl()
+
+# Bloomberg API
+from xbbg import blp
 
 # USER DEFINED VARIABLES ARE UPDATED HERE ------------------------------------
 
@@ -20,12 +22,18 @@ start_date = '2020-11-01'
 end_date = '2020-11-30'
 
 # Function variables
+deal = 'AFHT 2019-FAIR A'
 scenario = 'zeroZero'
-cusip = '05223HAA0'
 func_start = '2020-11-01'
-func_end = '2020-11-30'
+func_end = '2020-11-05'
 
 # USER DEFINED VARIABLES END HERE --------------------------------------------
+
+# Pull the cusip for the user-defined deal from the BBG API
+cusip = blp.bdp(f'{deal} MTGE', flds = ['ID_CUSIP'])
+
+# Pull the cusip out of the df and place in a string variable
+cusip = cusip.iat[0, 0]
 
 # Get data
 data = trundl.get('MMDB_CMBS_BOND_ANALYTIC', startDate = start_date, 
@@ -63,27 +71,20 @@ for i in scenarios_list:
     scenarios[i] = scenarios[i].sort_values(['bloomberg_dealname', 'cusip'], 
                                             ascending = [True, True])
 
-# This function specifies which scenario to use
-def choose_scenario(scenario):
-    global frame 
+# Function that creats a sliced dataframe based on user-defined inputs
+def df_slicer(scenario, cusip, start, end):
+    global frame
     frame = scenarios[scenario]
-    return frame
-choose_scenario(scenario)
-
-# This function specifies which cusip to use
-def choose_cusip(cusip):
-    global frame
     frame = frame[frame['cusip'].str.contains(cusip) == True]
-    return frame
-choose_cusip(cusip)
-
-# This function specifies the date range
-def date_range(start, end):
-    global frame
     frame = frame[start:end]
     return frame
-date_range(func_start, func_end)
+df_slicer(scenario, cusip, func_start, func_end)
 
 # Plot the results
 plt.plot(frame.index, frame['treasury_spread'])
+plt.ylabel('Treasury Spread')
+plt.title(f'{deal} Treasury Spread')
 plt.show()
+
+# Plot formatting
+
