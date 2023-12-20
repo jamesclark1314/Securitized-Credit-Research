@@ -6,6 +6,7 @@ Created on Thu Dec 14 10:54:05 2023
 """
 
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
 # Trundl API
@@ -18,14 +19,14 @@ from xbbg import blp
 # USER DEFINED VARIABLES ARE UPDATED HERE ------------------------------------
 
 # Date range for the entire data pull
-start_date = '2020-11-01'
-end_date = '2020-11-30'
+start_date = '2022-04-11'
+end_date = '2023-10-01'
 
 # Function variables
 deal = 'AFHT 2019-FAIR A'
 scenario = 'zeroZero'
-func_start = '2020-11-01'
-func_end = '2020-11-05'
+func_start = start_date
+func_end = end_date
 
 # USER DEFINED VARIABLES END HERE --------------------------------------------
 
@@ -35,9 +36,37 @@ cusip = blp.bdp(f'{deal} MTGE', flds = ['ID_CUSIP'])
 # Pull the cusip out of the df and place in a string variable
 cusip = cusip.iat[0, 0]
 
-# Get data
-data = trundl.get('MMDB_CMBS_BOND_ANALYTIC', startDate = start_date, 
-                        endDate = end_date)
+# DATA PULL ------------------------------------------------------------------
+
+# Create a list containing each date between start_date and end_date
+datetime_list = pd.date_range(start = start_date, end = end_date).to_list()
+
+# Convert each item in date_list to string
+date_list = []
+for i in datetime_list:
+    date_list.append(str(i))
+
+# Remove the timestamps from the end of each string in date_list
+test_list = []    
+for i in date_list:
+    test_list.append(i[:-9])
+    
+date_list = test_list    
+
+# Pull all the data for given date range
+all_data_list = []
+for i in date_list:
+    # Get data
+    data = trundl.get('MMDB_CMBS_BOND_ANALYTIC', startDate = i, 
+                            endDate = i)
+    all_data_list.append(data)
+    
+# Combine all dfs from all_data into one df
+data = pd.DataFrame()
+for i in all_data_list:
+    data = data.append(i).reset_index(drop = True)
+
+# END DATA PULL---------------------------------------------------------------
 
 # Set a datetime index
 data['effective_date'] = pd.to_datetime(data['effective_date']).apply(
@@ -45,14 +74,15 @@ data['effective_date'] = pd.to_datetime(data['effective_date']).apply(
 
 data = data.set_index(['effective_date'])
 
-# Drop n/a
+# Remove N/As and replace any instance of string 'NA' with 0
+data = data.replace('NA', np.nan)
 data = data.dropna()
 
 # CHANGE DATA TYPE -----------------------------------------------------------
 
 # Get a list of all column headers to change
 num_headers = ['wal_years', 'treasury_spread', 'min_ce', 'modified_duration', 
-               'swap_spread', 'yield']
+                'swap_spread', 'yield']
 
 # Iterate through the list and apply to necessary columns
 for i in num_headers:
@@ -85,6 +115,4 @@ plt.plot(frame.index, frame['treasury_spread'])
 plt.ylabel('Treasury Spread')
 plt.title(f'{deal} Treasury Spread')
 plt.show()
-
-# Plot formatting
 
