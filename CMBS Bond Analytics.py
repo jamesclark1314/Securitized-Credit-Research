@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
+import scipy
 
 # Trundl API
 from analytics_platform.trundl import Trundl
@@ -174,8 +175,17 @@ plt.show()
 mpl.style.available
 mpl.style.use('seaborn')
 
-sns.regplot(x = 'x_treasury_spread', y = 'y_treasury_spread', data = reg_frame,
-            line_kws = {'color': 'black'})
+# Calculate slope and intercept of regression equation
+slope, intercept, R2, p_val, std_err = scipy.stats.linregress(reg_frame['x_treasury_spread'],
+                                                              reg_frame['y_treasury_spread'])
+
+sns.regplot(x = 'x_treasury_spread', y = 'y_treasury_spread', data = reg_frame, 
+            ci = None, line_kws = {'color': 'black'}, 
+            label = 'y = {0:.1f}x + {1:.1f}'.format(slope, intercept)).legend(loc = 'best')
+
+# Add the R2 to the plot
+plt.text(1, 0.9, f'R-squared = {R2:.2f}', transform = plt.gca().transAxes, 
+         fontsize = 10, ha = 'right')
 
 # Highlight the most recent data point
 most_recent = reg_frame.iloc[-1:]
