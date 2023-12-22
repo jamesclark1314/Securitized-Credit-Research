@@ -8,6 +8,8 @@ Created on Thu Dec 14 10:54:05 2023
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import seaborn as sns
 
 # Trundl API
 from analytics_platform.trundl import Trundl
@@ -19,22 +21,33 @@ from xbbg import blp
 # USER DEFINED VARIABLES ARE UPDATED HERE ------------------------------------
 
 # Date range for the entire data pull
-start_date = '2022-04-11'
-end_date = '2023-10-01'
+start_date = '2023-11-01'
+end_date = '2023-12-21'
 
-# Function variables
-deal = 'AFHT 2019-FAIR A'
+# Line chart variables
+deal = 'CGCMT 2017-P7 AS'
 scenario = 'zeroZero'
 func_start = start_date
 func_end = end_date
 
+# Regression Variables
+x_deal = 'CGCMT 2017-P7 AS'
+y_deal = 'CGCMT 2017-P7 A4'
+reg_scenario = 'zeroZero'
+reg_start = start_date
+reg_end = end_date
+
 # USER DEFINED VARIABLES END HERE --------------------------------------------
 
-# Pull the cusip for the user-defined deal from the BBG API
-cusip = blp.bdp(f'{deal} MTGE', flds = ['ID_CUSIP'])
+# Pull the cusip for the user-defined deals from the BBG API
+line_cusip = blp.bdp(f'{deal} MTGE', flds = ['ID_CUSIP'])
+x_cusip = blp.bdp(f'{x_deal} MTGE', flds = ['ID_CUSIP'])
+y_cusip = blp.bdp(f'{y_deal} MTGE', flds = ['ID_CUSIP'])
 
 # Pull the cusip out of the df and place in a string variable
-cusip = cusip.iat[0, 0]
+line_cusip = line_cusip.iat[0, 0]
+x_cusip = x_cusip.iat[0, 0]
+y_cusip = y_cusip.iat[0, 0]
 
 # DATA PULL ------------------------------------------------------------------
 
@@ -67,6 +80,11 @@ for i in all_data_list:
     data = data.append(i).reset_index(drop = True)
 
 # END DATA PULL---------------------------------------------------------------
+
+# # Write to excel
+# with pd.ExcelWriter('CMBS Bond Analytics 2023.xlsx', engine = 'openpyxl',
+#                     mode = 'a', if_sheet_exists = 'replace') as writer:
+#     data.to_excel(writer, '2023', index = False)
 
 # Set a datetime index
 data['effective_date'] = pd.to_datetime(data['effective_date']).apply(
@@ -101,18 +119,68 @@ for i in scenarios_list:
     scenarios[i] = scenarios[i].sort_values(['bloomberg_dealname', 'cusip'], 
                                             ascending = [True, True])
 
+# FUNCTIONS ------------------------------------------------------------------
+
 # Function that creats a sliced dataframe based on user-defined inputs
-def df_slicer(scenario, cusip, start, end):
+def line_slicer(scenario, cusip, start, end):
     global frame
     frame = scenarios[scenario]
-    frame = frame[frame['cusip'].str.contains(cusip) == True]
+    frame = frame[frame['cusip'].str.contains(line_cusip) == True]
     frame = frame[start:end]
     return frame
-df_slicer(scenario, cusip, func_start, func_end)
+line_slicer(scenario, line_cusip, func_start, func_end)
 
-# Plot the results
-plt.plot(frame.index, frame['treasury_spread'])
+def reg_func(scenario, x_cusip, y_cusip, start, end):
+    global reg_frame
+    global x_frame
+    global y_frame
+    # Isolate only desired scenario
+    reg_frame = scenarios[scenario]
+    # Separate dataframe for the x variable
+    x_frame = reg_frame[reg_frame['cusip'].str.contains(x_cusip) == True]
+    # Separate dataframe for the y variable
+    y_frame = reg_frame[reg_frame['cusip'].str.contains(y_cusip) == True]
+    # Filter based on specified date range
+    x_frame = x_frame[start:end]
+    y_frame = y_frame[start:end]
+    # Add identifying prefix to each column name
+    x_frame = x_frame.add_prefix('x_')
+    y_frame = y_frame.add_prefix('y_')
+    # Merge x_frame and y_frame into one df
+    reg_frame = x_frame.merge(y_frame, how = 'left', 
+                                  left_index = True, right_index = True)
+reg_func(reg_scenario, x_cusip, y_cusip, reg_start, reg_end)
+
+# LINE PLOT ------------------------------------------------------------------
+
+# Define the x and y axis
+x = frame.index
+y = frame['treasury_spread']
+
+# Set plot style
+mpl.style.available
+mpl.style.use('fivethirtyeight')
+# mpl.rcParams['grid.color'] = 'black'
+
+plt.plot(x, y)
 plt.ylabel('Treasury Spread')
 plt.title(f'{deal} Treasury Spread')
-plt.show()
+plt.xticks(frame.index[::5], rotation = 45)
+plt.show() 
 
+# REGRESSION PLOT ------------------------------------------------------------
+
+# Set plot style
+mpl.style.available
+mpl.style.use('seaborn')
+
+sns.regplot(x = 'x_treasury_spread', y = 'y_treasury_spread', data = reg_frame,
+            line_kws = {'color': 'black'})
+
+# Highlight the most recent data point
+most_recent = reg_frame.iloc[-1:]
+plt.scatter(most_recent['x_treasury_spread'], most_recent['y_treasury_spread'], 
+            color = 'orange')
+
+plt.xlabel(f'{x_deal} Treasury Spread')
+plt.ylabel(f'{y_deal} Treasury Spread')
